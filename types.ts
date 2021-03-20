@@ -10,6 +10,7 @@ export interface ICleverConfig {
   clientSecret: string;
   redirectURI: string;
   apiVersion?: string;
+  logger?: (...data: unknown[]) => void;
 }
 
 export interface ICleverUserInfo<UserType extends string = cleverUserType> {
@@ -24,3 +25,23 @@ export interface ICleverUserInfo<UserType extends string = cleverUserType> {
 }
 
 export type cleverUserType = "teacher" | "student";
+
+export interface IAuthorizationConfig<UserType> {
+  code: string;
+  getUserByCleverId: (
+    cleverId: string,
+  ) => Promise<UserType | undefined>;
+  getUserByEmail: (
+    email: string,
+  ) => Promise<UserType | undefined>;
+}
+
+export type IAuthorizationResponse<UserType> = {
+  status: "SUCCESS" | "MERGE";
+  body: UserType;
+  cleverId: string;
+} | {
+  status: "NEW";
+  body: ICleverProfile;
+  cleverId: string;
+};
