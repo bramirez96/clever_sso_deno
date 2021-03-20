@@ -33,6 +33,16 @@ export default class CleverClient {
     return this.buttonURI;
   }
 
+  public async ssoAuthWithCode(code: string) {
+    try {
+      console.log("Acquiring token");
+      const token = await this.getToken(code);
+    } catch (err) {
+      console.log(err);
+      throw err;
+    }
+  }
+
   /**
    * Uses the `code` query parameter passed when redirected to a Clever
    * redirect URI to get an access token for subsequent requests.
@@ -40,7 +50,7 @@ export default class CleverClient {
    * @param code The `code` query param from a Clever redirect link
    * @returns the user's access token
    */
-  public async getToken(code: string): Promise<string> {
+  private async getToken(code: string): Promise<string> {
     try {
       const { data } = await axiod.post(
         "https://clever.com/oauth/tokens",
@@ -67,7 +77,7 @@ export default class CleverClient {
    * @param token the token returned from `this.getToken()`
    * @returns information about the current authorized user
    */
-  public async getUserInfo(token: string): Promise<ICleverUserInfo> {
+  private async getUserInfo(token: string): Promise<ICleverUserInfo> {
     try {
       const { data } = await axiod.get(`${this.api}/me`, this.bearer(token));
       return data;
@@ -86,7 +96,7 @@ export default class CleverClient {
    * @param token the token returned from `this.getToken()`
    * @returns the user's profile including name and email address
    */
-  public async getUserProfile(
+  private async getUserProfile(
     user: ICleverUserInfo,
     token: string,
   ): Promise<ICleverProfile> {
