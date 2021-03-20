@@ -33,10 +33,97 @@ export default class CleverClient {
     return this.buttonURI;
   }
 
-  public async ssoAuthWithCode(code: string) {
+  /**
+   * This method exists to give you the option to autmoate the SSO flow. It requires
+   * passing in two functions that query your database. Both functions:
+   * 
+   * 1. Should asynchronously access your database
+   * 2. Should return a complete `User` object, however that looks in your application
+   * 
+   * `getUserByCleverId` should return a complete user object from your database, and should
+   * be retrieved by their Clever SSO string ID.
+   * 
+   * `getUserByEmail` should return a complete user object from your database, and should
+   * be retrieved by their email address.
+   * 
+   * `code` should be the code passed to your Clever Redirect URI on your frontend by the
+   * Clever API.
+   */
+  public async ssoAuthWithCode<
+    UserType extends Record<string, unknown> = Record<
+      string,
+      unknown
+    >,
+  >({
+    code,
+    getUserByCleverId,
+    getUserByEmail,
+  }: {
+    code: string;
+    getUserByCleverId: (
+      cleverId: string,
+    ) => Promise<UserType | undefined>;
+    getUserByEmail: (
+      email: string,
+    ) => Promise<UserType | undefined>;
+  }): Promise<{
+    status: "SUCCESS" | "MERGE" | "NEW";
+    body: UserType | ICleverProfile;
+    cleverId: string;
+  }> {
     try {
       console.log("Acquiring token");
       const token = await this.getToken(code);
+
+      console.log("Acquiring user information");
+      const userInfo = await this.getUserInfo(token);
+
+      console.log("Checking if clever user exists in your database");
+      const existingUser = await getUserByCleverId(userInfo.data.id);
+
+      if (existingUser) {
+        // The user exists! Sign them in to your application
+        console.log("User successfully authenticated with Clever.");
+        return {
+          status: "SUCCESS",
+          body: existingUser,
+          cleverId: userInfo.data.id,
+        };
+      } else {
+        // The user has not connected an account to Clever yet. Check if they have
+        // an existing, non-linked account with your service.
+        console.log(
+          "User could be be authenticated with ID. Fetching more information.",
+        );
+        const userProfile = await this.getUserProfile(userInfo, token);
+
+        if (userProfile.email) {
+          const userToMerge = await getUserByEmail(userProfile.email);
+          if (userToMerge) {
+            console.log(
+              "User found with matching ID. Have them log in and merge their accounts.",
+            );
+            return {
+              status: "MERGE",
+              body: userToMerge,
+              cleverId: userInfo.data.id,
+            };
+          }
+        }
+
+        // With no email address we can't automatically verify if the user has an account
+        // with your service, so we return a NEW status. You can either take them to a
+        // new account creation, or give them the option to sign in and merge accounts.
+        console.log(
+          "User could not be authenticated.",
+          "Give them the option to sign in, or have them create a new account with your service.",
+        );
+        return {
+          status: "NEW",
+          body: userProfile,
+          cleverId: userInfo.data.id,
+        };
+      }
     } catch (err) {
       console.log(err);
       throw err;
