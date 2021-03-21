@@ -24,8 +24,6 @@ export default class CleverClient {
         config.redirectURI,
       )
     }&response_type=code&client_id=${encodeURI(config.clientId)}`;
-
-    this.logger = config.logger ?? console.log;
   }
 
   /** The Clever API URL */
@@ -36,11 +34,6 @@ export default class CleverClient {
   private basic: string;
   /** This is the link that should open then a user clicks "Log in With Clever" */
   private buttonURI: string;
-  /** 
-   * Pass in an optional logger function. Defaults to `console.log`.
-   * To prevent logging, pass in an empty callback that takes args.
-   */
-  private logger: (...data: unknown[]) => void;
 
   /**
    * Returns the URL to redirect to when pressing "Log In With Clever" on your frontend client
@@ -75,18 +68,18 @@ export default class CleverClient {
     IAuthorizationResponse<UserType>
   > {
     try {
-      this.logger("Acquiring token");
+      console.log("Acquiring token");
       const token = await this.getToken(code);
 
-      this.logger("Acquiring user information");
+      console.log("Acquiring user information");
       const userInfo = await this.getUserInfo(token);
 
-      this.logger("Checking if clever user exists in your database");
+      console.log("Checking if clever user exists in your database");
       const existingUser = await getUserByCleverId(userInfo.data.id);
 
       if (existingUser) {
         // The user exists! Sign them in to your application
-        this.logger("User successfully authenticated with Clever.");
+        console.log("User successfully authenticated with Clever.");
         return {
           status: "SUCCESS",
           body: existingUser,
@@ -95,7 +88,7 @@ export default class CleverClient {
       } else {
         // The user has not connected an account to Clever yet. Check if they have
         // an existing, non-linked account with your service.
-        this.logger(
+        console.log(
           "User could be be authenticated with ID. Fetching more information.",
         );
         const userProfile = await this.getUserProfile(userInfo, token);
@@ -103,7 +96,7 @@ export default class CleverClient {
         if (userProfile.email) {
           const userToMerge = await getUserByEmail(userProfile.email);
           if (userToMerge) {
-            this.logger(
+            console.log(
               "User found with matching ID. Have them log in and merge their accounts.",
             );
             return {
@@ -117,7 +110,7 @@ export default class CleverClient {
         // With no email address we can't automatically verify if the user has an account
         // with your service, so we return a NEW status. You can either take them to a
         // new account creation, or give them the option to sign in and merge accounts.
-        this.logger(
+        console.log(
           "User could not be authenticated.",
           "Give them the option to sign in, or have them create a new account with your service.",
         );
@@ -129,7 +122,7 @@ export default class CleverClient {
         };
       }
     } catch (err) {
-      this.logger(err);
+      console.log(err);
       throw err;
     }
   }
@@ -155,7 +148,7 @@ export default class CleverClient {
 
       return data.access_token;
     } catch (err) {
-      this.logger(err);
+      console.log(err);
       throw err;
     }
   }
@@ -173,7 +166,7 @@ export default class CleverClient {
       const { data } = await axiod.get(`${this.api}/me`, this.bearer(token));
       return data;
     } catch (err) {
-      this.logger(err);
+      console.log(err);
       throw err;
     }
   }
@@ -198,7 +191,7 @@ export default class CleverClient {
       );
       return data;
     } catch (err) {
-      this.logger(err);
+      console.log(err);
       throw err;
     }
   }
