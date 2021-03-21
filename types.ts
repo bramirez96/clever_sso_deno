@@ -56,26 +56,6 @@ export interface ICleverSection {
   grade: CleverGradeType;
 }
 
-/**
- * @deprecated use `ICleverProfile` instead
- */
-export interface ICleverTeacher {
-  id: string;
-  email?: string;
-  name: { first: string; last: string; middle?: string };
-  sections: string[];
-}
-
-/**
- * @deprecated use `ICleverProfile` instead
- */
-export interface ICleverStudent {
-  id: string;
-  email?: string;
-  name: { first: string; last: string; middle?: string };
-  grade: CleverGradeType;
-}
-
 export type CleverSubjectType =
   | "english/language arts"
   | "math"
