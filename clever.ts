@@ -42,6 +42,9 @@ export default class CleverClient {
    */
   private logger: (...data: unknown[]) => void;
 
+  /**
+   * Returns the URL to redirect to when pressing "Log In With Clever" on your frontend client
+   */
   public getLoginButtonURI() {
     return this.buttonURI;
   }
