@@ -66,10 +66,7 @@ export default class CleverClient {
    * Clever API.
    */
   public async ssoAuthWithCode<
-    UserType extends Record<string, unknown> = Record<
-      string,
-      unknown
-    >,
+    UserType,
   >({
     code,
     getUserByCleverId,
