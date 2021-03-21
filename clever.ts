@@ -66,7 +66,7 @@ export default class CleverClient {
    * Clever API.
    */
   public async ssoAuthWithCode<
-    UserType,
+    UserType = {},
   >({
     code,
     getUserByCleverId,
@@ -125,6 +125,7 @@ export default class CleverClient {
           status: "NEW",
           body: userProfile,
           cleverId: userInfo.data.id,
+          userType: userInfo.type,
         };
       }
     } catch (err) {

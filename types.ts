@@ -44,6 +44,7 @@ export type IAuthorizationResponse<UserType> = {
   status: "NEW";
   body: ICleverProfile;
   cleverId: string;
+  userType: string;
 };
 
 export interface ICleverSection {
