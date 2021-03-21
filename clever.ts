@@ -1,5 +1,11 @@
 import { axiod, Base64 } from "./cleverDeps.ts";
-import { ICleverConfig, ICleverProfile, ICleverUserInfo } from "./types.ts";
+import {
+  IAuthorizationConfig,
+  IAuthorizationResponse,
+  ICleverConfig,
+  ICleverProfile,
+  ICleverUserInfo,
+} from "./types.ts";
 
 /**
  * A Clever SSO API Client for use with version 2.1 of their API. This client does not handle
@@ -18,6 +24,8 @@ export default class CleverClient {
         config.redirectURI,
       )
     }&response_type=code&client_id=${encodeURI(config.clientId)}`;
+
+    this.logger = config.logger ?? console.log;
   }
 
   /** The Clever API URL */
@@ -28,9 +36,104 @@ export default class CleverClient {
   private basic: string;
   /** This is the link that should open then a user clicks "Log in With Clever" */
   private buttonURI: string;
+  /** 
+   * Pass in an optional logger function. Defaults to `console.log`.
+   * To prevent logging, pass in an empty callback that takes args.
+   */
+  private logger: (...data: unknown[]) => void;
 
+  /**
+   * Returns the URL to redirect to when pressing "Log In With Clever" on your frontend client
+   */
   public getLoginButtonURI() {
     return this.buttonURI;
+  }
+
+  /**
+   * This method exists to give you the option to autmoate the SSO flow. It requires
+   * passing in two functions that query your database. Both functions:
+   * 
+   * 1. Should asynchronously access your database
+   * 2. Should return a complete `User` object, however that looks in your application
+   * 
+   * `getUserByCleverId` should return a complete user object from your database, and should
+   * be retrieved by their Clever SSO string ID.
+   * 
+   * `getUserByEmail` should return a complete user object from your database, and should
+   * be retrieved by their email address.
+   * 
+   * `code` should be the code passed to your Clever Redirect URI on your frontend by the
+   * Clever API.
+   */
+  public async ssoAuthWithCode<
+    UserType extends Record<string, unknown> = Record<
+      string,
+      unknown
+    >,
+  >({
+    code,
+    getUserByCleverId,
+    getUserByEmail,
+  }: IAuthorizationConfig<UserType>): Promise<
+    IAuthorizationResponse<UserType>
+  > {
+    try {
+      this.logger("Acquiring token");
+      const token = await this.getToken(code);
+
+      this.logger("Acquiring user information");
+      const userInfo = await this.getUserInfo(token);
+
+      this.logger("Checking if clever user exists in your database");
+      const existingUser = await getUserByCleverId(userInfo.data.id);
+
+      if (existingUser) {
+        // The user exists! Sign them in to your application
+        this.logger("User successfully authenticated with Clever.");
+        return {
+          status: "SUCCESS",
+          body: existingUser,
+          cleverId: userInfo.data.id,
+        };
+      } else {
+        // The user has not connected an account to Clever yet. Check if they have
+        // an existing, non-linked account with your service.
+        this.logger(
+          "User could be be authenticated with ID. Fetching more information.",
+        );
+        const userProfile = await this.getUserProfile(userInfo, token);
+
+        if (userProfile.email) {
+          const userToMerge = await getUserByEmail(userProfile.email);
+          if (userToMerge) {
+            this.logger(
+              "User found with matching ID. Have them log in and merge their accounts.",
+            );
+            return {
+              status: "MERGE",
+              body: userToMerge,
+              cleverId: userInfo.data.id,
+            };
+          }
+        }
+
+        // With no email address we can't automatically verify if the user has an account
+        // with your service, so we return a NEW status. You can either take them to a
+        // new account creation, or give them the option to sign in and merge accounts.
+        this.logger(
+          "User could not be authenticated.",
+          "Give them the option to sign in, or have them create a new account with your service.",
+        );
+        return {
+          status: "NEW",
+          body: userProfile,
+          cleverId: userInfo.data.id,
+        };
+      }
+    } catch (err) {
+      this.logger(err);
+      throw err;
+    }
   }
 
   /**
@@ -40,7 +143,7 @@ export default class CleverClient {
    * @param code The `code` query param from a Clever redirect link
    * @returns the user's access token
    */
-  public async getToken(code: string): Promise<string> {
+  private async getToken(code: string): Promise<string> {
     try {
       const { data } = await axiod.post(
         "https://clever.com/oauth/tokens",
@@ -54,7 +157,7 @@ export default class CleverClient {
 
       return data.access_token;
     } catch (err) {
-      console.log(err);
+      this.logger(err);
       throw err;
     }
   }
@@ -67,12 +170,12 @@ export default class CleverClient {
    * @param token the token returned from `this.getToken()`
    * @returns information about the current authorized user
    */
-  public async getUserInfo(token: string): Promise<ICleverUserInfo> {
+  private async getUserInfo(token: string): Promise<ICleverUserInfo> {
     try {
       const { data } = await axiod.get(`${this.api}/me`, this.bearer(token));
       return data;
     } catch (err) {
-      console.log(err);
+      this.logger(err);
       throw err;
     }
   }
@@ -86,7 +189,7 @@ export default class CleverClient {
    * @param token the token returned from `this.getToken()`
    * @returns the user's profile including name and email address
    */
-  public async getUserProfile(
+  private async getUserProfile(
     user: ICleverUserInfo,
     token: string,
   ): Promise<ICleverProfile> {
@@ -97,7 +200,7 @@ export default class CleverClient {
       );
       return data;
     } catch (err) {
-      console.log(err);
+      this.logger(err);
       throw err;
     }
   }
