@@ -134,7 +134,7 @@ export default class CleverClient {
    * @param code The `code` query param from a Clever redirect link
    * @returns the user's access token
    */
-  private async getToken(code: string): Promise<string> {
+  public async getToken(code: string): Promise<string> {
     try {
       const { data } = await axiod.post(
         "https://clever.com/oauth/tokens",
@@ -161,7 +161,7 @@ export default class CleverClient {
    * @param token the token returned from `this.getToken()`
    * @returns information about the current authorized user
    */
-  private async getUserInfo(token: string): Promise<ICleverUserInfo> {
+  public async getUserInfo(token: string): Promise<ICleverUserInfo> {
     try {
       const { data } = await axiod.get(`${this.api}/me`, this.bearer(token));
       return data;
@@ -180,7 +180,7 @@ export default class CleverClient {
    * @param token the token returned from `this.getToken()`
    * @returns the user's profile including name and email address
    */
-  private async getUserProfile(
+  public async getUserProfile(
     user: ICleverUserInfo,
     token: string,
   ): Promise<ICleverProfile> {
