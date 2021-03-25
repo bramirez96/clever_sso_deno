@@ -1,3 +1,5 @@
+import { IAxiodResponse } from "./deps.ts";
+
 export interface ICleverProfile {
   id: string;
   email?: string;
@@ -94,3 +96,7 @@ export type CleverGradeType =
   | "Ungraded"
   | "Other"
   | "";
+
+export type ICustomAxiodResponse<Body> = Omit<IAxiodResponse, "data"> & {
+  data: Body;
+};
