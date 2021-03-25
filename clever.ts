@@ -1,10 +1,5 @@
-import { axiod, Base64 } from "./deps.ts";
-import {
-  ICleverConfig,
-  ICleverProfile,
-  ICleverUserInfo,
-  ICustomAxiodResponse,
-} from "./types.ts";
+import { Base64 } from "./deps.ts";
+import { ICleverConfig, ICleverProfile, ICleverUserInfo } from "./types.ts";
 
 /**
  * A Clever SSO API Client for use with version 2.1 of their API. This client does not handle
@@ -50,17 +45,24 @@ export default class CleverClient {
    */
   public async getToken(
     code: string,
-  ): Promise<ICustomAxiodResponse<{ access_token: string }>> {
+  ): Promise<{ access_token: string }> {
     try {
-      return axiod.post(
-        "https://clever.com/oauth/tokens",
-        {
-          code,
-          grant_type: "authorization_code",
-          redirect_uri: this.redirectURI,
+      const reqBody = {
+        code,
+        grant_type: "authorization_code",
+        redirect_uri: this.redirectURI,
+      };
+      const response = await fetch("https://clever.com/oauth/tokens", {
+        body: JSON.stringify(reqBody),
+        method: "POST",
+        headers: {
+          Authorization: this.basic,
+          "Content-Type": "application/json",
         },
-        { headers: { Authorization: this.basic } },
-      );
+      });
+      console.log({ reqBody, response });
+      const body = await response.json();
+      return body;
     } catch (err) {
       console.log(err);
       throw err;
@@ -77,9 +79,16 @@ export default class CleverClient {
    */
   public async getUserInfo(
     token: string,
-  ): Promise<ICustomAxiodResponse<ICleverUserInfo>> {
+  ): Promise<ICleverUserInfo> {
     try {
-      return axiod.get(`${this.api}/me`, this.bearer(token));
+      const response = await fetch(`${this.api}/me`, {
+        method: "GET",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+      });
+      return response.json();
     } catch (err) {
       console.log(err);
       throw err;
@@ -98,19 +107,19 @@ export default class CleverClient {
   public async getUserProfile(
     user: ICleverUserInfo,
     token: string,
-  ): Promise<ICustomAxiodResponse<ICleverProfile>> {
+  ): Promise<ICleverProfile> {
     try {
-      return axiod.get(
-        `${this.api}/${user.type}/${user.data.id}`,
-        this.bearer(token),
-      );
+      const response = await fetch(`${this.api}/${user.type}/${user.data.id}`, {
+        method: "GET",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+        },
+      });
+      return response.json();
     } catch (err) {
       console.log(err);
       throw err;
     }
-  }
-
-  private bearer(token: string) {
-    return { headers: { Authorization: `Bearer ${token}` } };
   }
 }
