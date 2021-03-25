@@ -1,5 +1,10 @@
-import { axiod, Base64, IAxiodResponse } from "./deps.ts";
-import { ICleverConfig, ICleverProfile, ICleverUserInfo } from "./types.ts";
+import { axiod, Base64 } from "./deps.ts";
+import {
+  ICleverConfig,
+  ICleverProfile,
+  ICleverUserInfo,
+  ICustomAxiodResponse,
+} from "./types.ts";
 
 /**
  * A Clever SSO API Client for use with version 2.1 of their API. This client does not handle
@@ -45,7 +50,7 @@ export default class CleverClient {
    */
   public async getToken(
     code: string,
-  ): Promise<IAxiodResponse & { data: { access_token: string } }> {
+  ): Promise<ICustomAxiodResponse<{ access_token: string }>> {
     try {
       return axiod.post(
         "https://clever.com/oauth/tokens",
@@ -72,7 +77,7 @@ export default class CleverClient {
    */
   public async getUserInfo(
     token: string,
-  ): Promise<IAxiodResponse & { data: ICleverUserInfo }> {
+  ): Promise<ICustomAxiodResponse<ICleverUserInfo>> {
     try {
       return axiod.get(`${this.api}/me`, this.bearer(token));
     } catch (err) {
@@ -93,7 +98,7 @@ export default class CleverClient {
   public async getUserProfile(
     user: ICleverUserInfo,
     token: string,
-  ): Promise<IAxiodResponse & { data: ICleverProfile }> {
+  ): Promise<ICustomAxiodResponse<ICleverProfile>> {
     try {
       return axiod.get(
         `${this.api}/${user.type}/${user.data.id}`,
