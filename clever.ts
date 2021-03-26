@@ -109,13 +109,16 @@ export default class CleverClient {
     token: string,
   ): Promise<ICleverProfile> {
     try {
-      const response = await fetch(`${this.api}/${user.type}/${user.data.id}`, {
-        method: "GET",
-        headers: {
-          Authorization: "Bearer " + token,
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${this.api}/${user.type}s/${user.data.id}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: "Bearer " + token,
+            "Content-Type": "application/json",
+          },
         },
-      });
+      );
       return response.json();
     } catch (err) {
       console.log(err);
