@@ -1,8 +1,11 @@
 export interface ICleverProfile {
-  id: string;
-  email?: string;
-  name: { first: string; last: string; middle?: string };
-  district?: string;
+  data: {
+    id: string;
+    email?: string;
+    name: { first: string; last: string; middle?: string };
+    district?: string;
+  };
+  links: ICleverLink[];
 }
 
 export interface ICleverConfig {
@@ -21,7 +24,7 @@ export interface ICleverUserInfo<UserType extends string = cleverUserType> {
     type: UserType;
     authorized_by: string;
   };
-  links: { rel: string; uri: string }[];
+  links: ICleverLink[];
 }
 
 export type cleverUserType = "teacher" | "student";
@@ -94,3 +97,8 @@ export type CleverGradeType =
   | "Ungraded"
   | "Other"
   | "";
+
+interface ICleverLink {
+  rel: string;
+  uri: string;
+}
